@@ -6,158 +6,31 @@
     <title>통합 장비 스케줄 관리</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* 기본 스타일 및 모바일 초기화 */
-        body { 
-            font-family: 'Malgun Gothic', sans-serif; 
-            background-color: #f4f7f6; 
-            margin: 0; 
-            padding: 10px; /* 모바일 여백 축소 */
-            color: #333; 
-        }
-        .container { 
-            max-width: 1300px; 
-            margin: 0 auto; 
-            background: #fff; 
-            padding: 15px; 
-            border-radius: 8px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
-        }
-        h2 { 
-            text-align: center; 
-            color: #2c3e50; 
-            margin-bottom: 5px; 
-            font-size: 22px; 
-        }
-        .status { 
-            text-align: center; 
-            color: #27ae60; 
-            font-size: 13px; 
-            font-weight: bold; 
-            margin-bottom: 15px; 
-            height: 18px; 
-        }
-        
-        /* 상단 컨트롤 (버튼 및 주차 표시) */
-        .header-controls { 
-            display: flex; 
-            flex-direction: column; /* 모바일에선 세로 배치 */
-            gap: 10px;
-            align-items: center; 
-            margin-bottom: 15px; 
-        }
-        .week-nav { 
-            display: flex; 
-            align-items: center; 
-            justify-content: center;
-            width: 100%;
-            gap: 10px; 
-        }
-        .week-nav button, .btn-add { 
-            padding: 10px 15px; /* 터치 영역 확대 */
-            cursor: pointer; 
-            border: none; 
-            border-radius: 6px; 
-            font-size: 15px; 
-            font-weight: bold; 
-            color: white; 
-            white-space: nowrap;
-        }
+        body { font-family: 'Malgun Gothic', sans-serif; background-color: #f4f7f6; margin: 0; padding: 10px; color: #333; }
+        .container { max-width: 1300px; margin: 0 auto; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #2c3e50; margin-bottom: 5px; font-size: 22px; }
+        .status { text-align: center; color: #27ae60; font-size: 13px; font-weight: bold; margin-bottom: 15px; height: 18px; }
+        .header-controls { display: flex; flex-direction: column; gap: 10px; align-items: center; margin-bottom: 15px; }
+        .week-nav { display: flex; align-items: center; justify-content: center; width: 100%; gap: 10px; }
+        .week-nav button, .btn-add { padding: 10px 15px; cursor: pointer; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; color: white; white-space: nowrap; }
         .week-nav button { background: #3498db; }
         .week-nav button:active { background: #2980b9; }
         .btn-add { background-color: #27ae60; width: 100%; max-width: 300px; }
         .btn-add:active { background-color: #219653; }
-        .week-title { 
-            font-size: 18px; 
-            font-weight: bold; 
-            min-width: 150px; 
-            text-align: center; 
-        }
-
-        /* 테이블 래퍼 (가로 스크롤 영역) */
-        .table-wrapper {
-            width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch; /* iOS 부드러운 스크롤 */
-            border: 1px solid #ddd;
-            border-radius: 6px;
-        }
-
-        /* 테이블 기본 스타일 */
-        table.schedule-table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            min-width: 900px; /* 스크롤을 위한 최소 너비 설정 */
-        }
-        table.schedule-table th, table.schedule-table td { 
-            border: 1px solid #ddd; 
-            padding: 8px; 
-            text-align: center; 
-            vertical-align: middle; 
-        }
-        table.schedule-table th { 
-            background-color: #f8f9fa; 
-            font-weight: bold; 
-            font-size: 14px;
-        }
-        
-        /* 모바일 핵심: 첫 번째 열 고정 (Sticky) */
-        table.schedule-table th:first-child,
-        table.schedule-table td:first-child {
-            position: sticky;
-            left: 0;
-            z-index: 2;
-            background-color: #f8f9fa;
-            border-right: 2px solid #bbb; /* 고정 영역 구분선 */
-            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
-        }
-        table.schedule-table td:first-child {
-            background-color: #fff;
-        }
-
-        .sun { color: #e74c3c; } 
-        .sat { color: #3498db; }
-        
-        /* 정보 입력부 */
-        .worker-info { 
-            display: flex; 
-            flex-direction: column; 
-            gap: 6px; 
-            width: 120px; 
-        }
-        /* iOS에서 input 터치 시 화면이 자동 확대되지 않도록 font-size: 16px 이상 적용 */
-        .worker-info input, .schedule-input { 
-            padding: 8px; 
-            border: 1px solid #ccc; 
-            border-radius: 4px; 
-            text-align: center; 
-            font-size: 16px; 
-            width: 100%;
-            box-sizing: border-box;
-            background-color: #fdfdfd;
-        }
+        .week-title { font-size: 18px; font-weight: bold; min-width: 150px; text-align: center; }
+        .table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid #ddd; border-radius: 6px; }
+        table.schedule-table { width: 100%; border-collapse: collapse; min-width: 900px; }
+        table.schedule-table th, table.schedule-table td { border: 1px solid #ddd; padding: 8px; text-align: center; vertical-align: middle; }
+        table.schedule-table th { background-color: #f8f9fa; font-weight: bold; font-size: 14px; }
+        table.schedule-table th:first-child, table.schedule-table td:first-child { position: sticky; left: 0; z-index: 2; background-color: #f8f9fa; border-right: 2px solid #bbb; box-shadow: 2px 0 5px rgba(0,0,0,0.05); }
+        table.schedule-table td:first-child { background-color: #fff; }
+        .sun { color: #e74c3c; } .sat { color: #3498db; }
+        .worker-info { display: flex; flex-direction: column; gap: 6px; width: 120px; }
+        .worker-info input, .schedule-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; text-align: center; font-size: 16px; width: 100%; box-sizing: border-box; background-color: #fdfdfd; }
         .schedule-input { min-width: 100px; }
-        .worker-info input:focus, .schedule-input:focus { 
-            border: 1px solid #3498db; 
-            background-color: #fff; 
-            outline: none; 
-        }
-        .delete-btn { 
-            background: #e74c3c; 
-            color: white; 
-            border: none; 
-            border-radius: 4px; 
-            padding: 6px 5px; 
-            cursor: pointer; 
-            font-size: 13px; 
-            font-weight: bold;
-        }
-
-        /* 데스크탑 화면용 반응형 */
-        @media (min-width: 768px) {
-            .header-controls { flex-direction: row; }
-            .btn-add { width: auto; }
-            .worker-info { width: 150px; }
-        }
+        .worker-info input:focus, .schedule-input:focus { border: 1px solid #3498db; background-color: #fff; outline: none; }
+        .delete-btn { background: #e74c3c; color: white; border: none; border-radius: 4px; padding: 6px 5px; cursor: pointer; font-size: 13px; font-weight: bold; }
+        @media (min-width: 768px) { .header-controls { flex-direction: row; } .btn-add { width: auto; } .worker-info { width: 150px; } }
     </style>
 </head>
 <body>
@@ -186,21 +59,20 @@
 </div>
 
 <script>
-    // 🔴 알려주신 Supabase URL 적용
+    // 1. API 주소 및 키 설정
     const SUPABASE_URL = 'https://fjlkxesxyitlnkkdapnv.supabase.co';
     
-    // 🔴 중요: 아래 'YOUR_SUPABASE_ANON_KEY' 부분은 보안상 알 수 없으므로,
-    // 반드시 본인의 API 설정에서 복사하여 교체해 주셔야 정상 작동합니다.
+    // 🔴 중요: 아래 '여기에_본인의_API_키를_붙여넣으세요' 글자를 지우고, 
+    // 본인의 실제 슈퍼베이스 anon key를 반드시 따옴표 안에 넣어주세요.
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqbGt4ZXN4eWl0bG5ra2RhcG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NjA1MjcsImV4cCI6MjA5NzUzNjUyN30.3JbfUBjFx9UYY-qL8-3-A61nXt3xa2P9kINmnzDTmNo';
 
-    
+    // 2. 단 한 번만 선언되는 클라이언트 및 브라우저 세션 차단 옵션 적용
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         auth: { persistSession: false }
     });
-    
+
     let currentDate = new Date();
     const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-    
     let workers = [];
     let scheduleData = {};
 
@@ -323,7 +195,6 @@
         const newWorker = { id: newId, machine: '', name: '' };
         workers.push(newWorker);
         renderTable(); 
-        
         await supabase.from('workers').insert([newWorker]);
     }
 
