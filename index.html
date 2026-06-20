@@ -59,15 +59,11 @@
 </div>
 
 <script>
-    // 1. API 주소 및 키 설정
     const SUPABASE_URL = 'https://fjlkxesxyitlnkkdapnv.supabase.co';
     
-    // 🔴 중요: 아래 '여기에_본인의_API_키를_붙여넣으세요' 글자를 지우고, 
-    // 본인의 실제 슈퍼베이스 anon key를 반드시 따옴표 안에 넣어주세요.
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqbGt4ZXN4eWl0bG5ra2RhcG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NjA1MjcsImV4cCI6MjA5NzUzNjUyN30.3JbfUBjFx9UYY-qL8-3-A61nXt3xa2P9kINmnzDTmNo';
 
-    // 2. 단 한 번만 선언되는 클라이언트 및 브라우저 세션 차단 옵션 적용
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         auth: { persistSession: false }
     });
 
@@ -86,10 +82,11 @@
     async function loadData() {
         setStatus('데이터 불러오는 중...', '#e67e22');
         
-        const { data: wData, error: wErr } = await supabase.from('workers').select('*').order('id', { ascending: true });
+        // supabase -> supabaseClient 로 모두 변경
+        const { data: wData, error: wErr } = await supabaseClient.from('workers').select('*').order('id', { ascending: true });
         if (wData) workers = wData;
 
-        const { data: sData, error: sErr } = await supabase.from('schedules').select('*');
+        const { data: sData, error: sErr } = await supabaseClient.from('schedules').select('*');
         if (sData) {
             sData.forEach(item => {
                 scheduleData[item.data_key] = item.content;
@@ -170,9 +167,9 @@
                     setStatus('저장 중...', '#e67e22');
                     
                     if(val === '') {
-                        await supabase.from('schedules').delete().eq('data_key', dataKey);
+                        await supabaseClient.from('schedules').delete().eq('data_key', dataKey);
                     } else {
-                        await supabase.from('schedules').upsert({ data_key: dataKey, content: val });
+                        await supabaseClient.from('schedules').upsert({ data_key: dataKey, content: val });
                     }
                     setStatus('저장 완료!');
                 };
@@ -195,7 +192,7 @@
         const newWorker = { id: newId, machine: '', name: '' };
         workers.push(newWorker);
         renderTable(); 
-        await supabase.from('workers').insert([newWorker]);
+        await supabaseClient.from('workers').insert([newWorker]);
     }
 
     async function updateWorker(id, field, value) {
@@ -203,7 +200,7 @@
         if (worker) {
             worker[field] = value;
             setStatus('정보 업데이트 중...', '#e67e22');
-            await supabase.from('workers').update({ [field]: value }).eq('id', id);
+            await supabaseClient.from('workers').update({ [field]: value }).eq('id', id);
             setStatus('저장 완료!');
         }
     }
@@ -212,7 +209,7 @@
         if(confirm('이 장비를 삭제하시겠습니까?')) {
             workers = workers.filter(w => w.id !== id);
             renderTable(); 
-            await supabase.from('workers').delete().eq('id', id);
+            await supabaseClient.from('workers').delete().eq('id', id);
         }
     }
 
