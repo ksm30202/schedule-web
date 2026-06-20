@@ -193,12 +193,11 @@
     // 반드시 본인의 API 설정에서 복사하여 교체해 주셔야 정상 작동합니다.
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqbGt4ZXN4eWl0bG5ra2RhcG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NjA1MjcsImV4cCI6MjA5NzUzNjUyN30.3JbfUBjFx9UYY-qL8-3-A61nXt3xa2P9kINmnzDTmNo';
 
+    
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: {
-            persistSession: false // 브라우저 저장소 접근(로그인 세션 유지) 기능 끄기
-        }
-});
-
+        auth: { persistSession: false }
+    });
+    
     let currentDate = new Date();
     const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
     
