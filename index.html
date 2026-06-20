@@ -2,49 +2,180 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>통합 장비 스케줄 관리 (Supabase 연동)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>통합 장비 스케줄 관리</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Malgun Gothic', sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
-        .container { max-width: 1300px; margin: 0 auto; background: #fff; padding: 20px 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
-        .status { text-align: center; color: #27ae60; font-size: 14px; font-weight: bold; margin-bottom: 20px; height: 20px; }
-        .header-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .week-nav { display: flex; align-items: center; gap: 15px; }
-        .week-nav button, .btn-add { padding: 8px 15px; cursor: pointer; border: none; border-radius: 4px; font-size: 14px; font-weight: bold; color: white; }
+        /* 기본 스타일 및 모바일 초기화 */
+        body { 
+            font-family: 'Malgun Gothic', sans-serif; 
+            background-color: #f4f7f6; 
+            margin: 0; 
+            padding: 10px; /* 모바일 여백 축소 */
+            color: #333; 
+        }
+        .container { 
+            max-width: 1300px; 
+            margin: 0 auto; 
+            background: #fff; 
+            padding: 15px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+        }
+        h2 { 
+            text-align: center; 
+            color: #2c3e50; 
+            margin-bottom: 5px; 
+            font-size: 22px; 
+        }
+        .status { 
+            text-align: center; 
+            color: #27ae60; 
+            font-size: 13px; 
+            font-weight: bold; 
+            margin-bottom: 15px; 
+            height: 18px; 
+        }
+        
+        /* 상단 컨트롤 (버튼 및 주차 표시) */
+        .header-controls { 
+            display: flex; 
+            flex-direction: column; /* 모바일에선 세로 배치 */
+            gap: 10px;
+            align-items: center; 
+            margin-bottom: 15px; 
+        }
+        .week-nav { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            width: 100%;
+            gap: 10px; 
+        }
+        .week-nav button, .btn-add { 
+            padding: 10px 15px; /* 터치 영역 확대 */
+            cursor: pointer; 
+            border: none; 
+            border-radius: 6px; 
+            font-size: 15px; 
+            font-weight: bold; 
+            color: white; 
+            white-space: nowrap;
+        }
         .week-nav button { background: #3498db; }
-        .week-nav button:hover { background: #2980b9; }
-        .btn-add { background-color: #27ae60; }
-        .btn-add:hover { background-color: #219653; }
-        .week-title { font-size: 20px; font-weight: bold; min-width: 180px; text-align: center; }
-        table.schedule-table { width: 100%; border-collapse: collapse; min-width: 1100px; }
-        table.schedule-table th, table.schedule-table td { border: 1px solid #ddd; padding: 10px; text-align: center; vertical-align: middle; }
-        table.schedule-table th { background-color: #f8f9fa; font-weight: bold; }
-        .sun { color: #e74c3c; } .sat { color: #3498db; }
-        .worker-info { display: flex; flex-direction: column; gap: 5px; width: 160px; }
-        .worker-info input { padding: 6px; border: 1px solid #ccc; border-radius: 3px; text-align: center; font-size: 13px; }
-        .schedule-input { width: 90%; padding: 8px; border: 1px solid transparent; border-radius: 3px; background-color: #fdfdfd; font-size: 14px; }
-        .schedule-input:focus, .schedule-input:hover { border: 1px solid #3498db; background-color: #fff; outline: none; }
-        .delete-btn { background: #e74c3c; color: white; border: none; border-radius: 3px; padding: 3px 5px; cursor: pointer; font-size: 11px; }
+        .week-nav button:active { background: #2980b9; }
+        .btn-add { background-color: #27ae60; width: 100%; max-width: 300px; }
+        .btn-add:active { background-color: #219653; }
+        .week-title { 
+            font-size: 18px; 
+            font-weight: bold; 
+            min-width: 150px; 
+            text-align: center; 
+        }
+
+        /* 테이블 래퍼 (가로 스크롤 영역) */
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch; /* iOS 부드러운 스크롤 */
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+
+        /* 테이블 기본 스타일 */
+        table.schedule-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            min-width: 900px; /* 스크롤을 위한 최소 너비 설정 */
+        }
+        table.schedule-table th, table.schedule-table td { 
+            border: 1px solid #ddd; 
+            padding: 8px; 
+            text-align: center; 
+            vertical-align: middle; 
+        }
+        table.schedule-table th { 
+            background-color: #f8f9fa; 
+            font-weight: bold; 
+            font-size: 14px;
+        }
+        
+        /* 모바일 핵심: 첫 번째 열 고정 (Sticky) */
+        table.schedule-table th:first-child,
+        table.schedule-table td:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 2;
+            background-color: #f8f9fa;
+            border-right: 2px solid #bbb; /* 고정 영역 구분선 */
+            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+        }
+        table.schedule-table td:first-child {
+            background-color: #fff;
+        }
+
+        .sun { color: #e74c3c; } 
+        .sat { color: #3498db; }
+        
+        /* 정보 입력부 */
+        .worker-info { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 6px; 
+            width: 120px; 
+        }
+        /* iOS에서 input 터치 시 화면이 자동 확대되지 않도록 font-size: 16px 이상 적용 */
+        .worker-info input, .schedule-input { 
+            padding: 8px; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+            text-align: center; 
+            font-size: 16px; 
+            width: 100%;
+            box-sizing: border-box;
+            background-color: #fdfdfd;
+        }
+        .schedule-input { min-width: 100px; }
+        .worker-info input:focus, .schedule-input:focus { 
+            border: 1px solid #3498db; 
+            background-color: #fff; 
+            outline: none; 
+        }
+        .delete-btn { 
+            background: #e74c3c; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            padding: 6px 5px; 
+            cursor: pointer; 
+            font-size: 13px; 
+            font-weight: bold;
+        }
+
+        /* 데스크탑 화면용 반응형 */
+        @media (min-width: 768px) {
+            .header-controls { flex-direction: row; }
+            .btn-add { width: auto; }
+            .worker-info { width: 150px; }
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>통합 장비 운행 스케줄</h2>
+    <h2>장비 운행 스케줄</h2>
     <div class="status" id="db-status">서버 연결 중...</div>
     
     <div class="header-controls">
         <div class="week-nav">
-            <button onclick="changeWeek(-1)">◀ 이전 주</button>
+            <button onclick="changeWeek(-1)">◀ 이전</button>
             <span class="week-title" id="week-display"></span>
-            <button onclick="changeWeek(1)">다음 주 ▶</button>
+            <button onclick="changeWeek(1)">다음 ▶</button>
         </div>
         <button class="btn-add" onclick="addWorker()">+ 장비/기사 추가</button>
     </div>
     
-    <div style="overflow-x: auto;">
+    <div class="table-wrapper">
         <table class="schedule-table">
             <thead>
                 <tr id="table-header"></tr>
@@ -55,9 +186,12 @@
 </div>
 
 <script>
-    // 🔴 중요: 본인의 슈퍼베이스 URL과 anon 키를 입력하세요.
+    // 🔴 알려주신 Supabase URL 적용
     const SUPABASE_URL = 'https://fjlkxesxyitlnkkdapnv.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqbGt4ZXN4eWl0bG5ra2RhcG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NjA1MjcsImV4cCI6MjA5NzUzNjUyN30.3JbfUBjFx9UYY-qL8-3-A61nXt3xa2P9kINmnzDTmNo';
+    
+    // 🔴 중요: 아래 'YOUR_SUPABASE_ANON_KEY' 부분은 보안상 알 수 없으므로,
+    // 반드시 본인의 API 설정에서 복사하여 교체해 주셔야 정상 작동합니다.
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -74,15 +208,12 @@
         setTimeout(() => { el.innerText = ''; }, 2000);
     }
 
-    // 1. DB에서 데이터 불러오기 (최초 1회)
     async function loadData() {
         setStatus('데이터 불러오는 중...', '#e67e22');
         
-        // 장비 목록 가져오기
         const { data: wData, error: wErr } = await supabase.from('workers').select('*').order('id', { ascending: true });
         if (wData) workers = wData;
 
-        // 스케줄 데이터 가져오기
         const { data: sData, error: sErr } = await supabase.from('schedules').select('*');
         if (sData) {
             sData.forEach(item => {
@@ -91,7 +222,7 @@
         }
         
         renderTable();
-        setStatus('서버와 동기화 완료!');
+        setStatus('서버 연동 완료!');
     }
 
     function getSunday(date) {
@@ -107,17 +238,16 @@
         return `${y}-${m}-${d}`;
     }
 
-    // 화면 그리기
     function renderTable() {
         const sunday = getSunday(currentDate);
         const month = sunday.getMonth() + 1;
         const firstDayOfMonth = new Date(sunday.getFullYear(), sunday.getMonth(), 1);
         const weekNum = Math.ceil((sunday.getDate() + firstDayOfMonth.getDay()) / 7);
         
-        document.getElementById('week-display').innerText = `${sunday.getFullYear()}년 ${month}월 ${weekNum}주차`;
+        document.getElementById('week-display').innerText = `${month}월 ${weekNum}주차`;
 
         const theadRow = document.getElementById('table-header');
-        theadRow.innerHTML = '<th>장비 및 기사 정보</th>';
+        theadRow.innerHTML = '<th>장비 / 기사</th>';
         
         let weekDates = [];
         for (let i = 0; i < 7; i++) {
@@ -126,7 +256,7 @@
             weekDates.push(d);
             
             const th = document.createElement('th');
-            th.innerText = `${d.getMonth() + 1}/${d.getDate()} (${dayNames[i]})`;
+            th.innerHTML = `${d.getMonth() + 1}/${d.getDate()}<br>(${dayNames[i]})`;
             if (i === 0) th.classList.add('sun');
             if (i === 6) th.classList.add('sat');
             theadRow.appendChild(th);
@@ -141,9 +271,9 @@
             const infoTd = document.createElement('td');
             infoTd.innerHTML = `
                 <div class="worker-info">
-                    <input type="text" placeholder="장비 기종" value="${worker.machine || ''}" onchange="updateWorker(${worker.id}, 'machine', this.value)">
+                    <input type="text" placeholder="장비 (02)" value="${worker.machine || ''}" onchange="updateWorker(${worker.id}, 'machine', this.value)">
                     <input type="text" placeholder="기사명" value="${worker.name || ''}" onchange="updateWorker(${worker.id}, 'name', this.value)">
-                    <div><button class="delete-btn" onclick="removeWorker(${worker.id})">삭제</button></div>
+                    <button class="delete-btn" onclick="removeWorker(${worker.id})">삭제</button>
                 </div>
             `;
             tr.appendChild(infoTd);
@@ -159,7 +289,6 @@
                 input.placeholder = "-";
                 input.value = scheduleData[dataKey] || '';
                 
-                // 스케줄 입력 변경 시 즉시 DB 업데이트 (Upsert)
                 input.onchange = async function() {
                     const val = this.value.trim();
                     scheduleData[dataKey] = val;
@@ -186,17 +315,15 @@
         renderTable();
     }
 
-    // 장비 추가 (DB Insert)
     async function addWorker() {
         const newId = Date.now();
         const newWorker = { id: newId, machine: '', name: '' };
         workers.push(newWorker);
-        renderTable(); // 화면 먼저 반영
+        renderTable(); 
         
         await supabase.from('workers').insert([newWorker]);
     }
 
-    // 장비 수정 (DB Update)
     async function updateWorker(id, field, value) {
         const worker = workers.find(w => w.id === id);
         if (worker) {
@@ -207,16 +334,14 @@
         }
     }
 
-    // 장비 삭제 (DB Delete)
     async function removeWorker(id) {
-        if(confirm('이 장비를 삭제하시겠습니까? (기존 일정은 데이터베이스에 보관됩니다)')) {
+        if(confirm('이 장비를 삭제하시겠습니까?')) {
             workers = workers.filter(w => w.id !== id);
-            renderTable(); // 화면 먼저 반영
+            renderTable(); 
             await supabase.from('workers').delete().eq('id', id);
         }
     }
 
-    // 초기 데이터 로드 실행
     loadData();
 
 </script>
