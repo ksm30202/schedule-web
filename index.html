@@ -32,11 +32,12 @@
         .worker-info input:focus { border: 1px solid #3498db; background-color: #fff; outline: none; }
         .delete-btn { background: #e74c3c; color: white; border: none; border-radius: 4px; padding: 6px 5px; cursor: pointer; font-size: 13px; font-weight: bold; }
         
-        /* 일정 입력 칸 디자인 (콤보박스 + 텍스트 입력) */
-        .cell-container { display: flex; gap: 4px; align-items: center; justify-content: center; }
-        .attendance-select { padding: 7px 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 15px; background-color: #f8f9fa; cursor: pointer; font-weight: bold; }
+        /* 변경된 일정 칸 디자인 (위아래 배치) */
+        .cell-container { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+        .attendance-row { display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 13px; color: #555; font-weight: bold; }
+        .attendance-select { padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; background-color: #f8f9fa; cursor: pointer; font-weight: bold; }
         .attendance-select:focus { border-color: #3498db; outline: none; }
-        .schedule-input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; min-width: 80px; box-sizing: border-box; background-color: #fdfdfd; }
+        .schedule-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; box-sizing: border-box; background-color: #fdfdfd; width: 100%; }
         .schedule-input:focus { border: 1px solid #3498db; background-color: #fff; outline: none; }
         
         @media (min-width: 768px) { .header-controls { flex-direction: row; } .btn-add { width: auto; } .worker-info { width: 150px; } }
@@ -97,7 +98,6 @@
         const { data: sData, error: sErr } = await supabaseClient.from('schedules').select('*');
         if (sData) {
             sData.forEach(item => {
-                // 기존 문자열 저장 방식에서 객체({내용, 출근여부}) 저장 방식으로 변경
                 scheduleData[item.data_key] = {
                     content: item.content || '',
                     attendance: item.attendance || ''
@@ -167,13 +167,18 @@
                 const dateStr = formatDate(date);
                 const dataKey = `${worker.id}_${dateStr}`;
                 
-                // 해당 날짜의 데이터 객체 가져오기 (없으면 빈 값)
                 const cellData = scheduleData[dataKey] || { content: '', attendance: '' };
                 
                 const cellDiv = document.createElement('div');
                 cellDiv.className = 'cell-container';
 
-                // 1. 출근 여부 콤보박스 (Select)
+                // 1. 위쪽: 출근여부 라벨 + 콤보박스 묶음
+                const attRow = document.createElement('div');
+                attRow.className = 'attendance-row';
+                
+                const attLabel = document.createElement('span');
+                attLabel.innerText = '출근여부:';
+
                 const select = document.createElement('select');
                 select.className = 'attendance-select';
                 const options = [
@@ -186,20 +191,21 @@
                     option.value = opt.value;
                     option.text = opt.text;
                     if (cellData.attendance === opt.value) option.selected = true;
-                    // 색상 포인트 부여
                     if (opt.value === 'O') option.style.color = 'blue';
                     if (opt.value === 'X') option.style.color = 'red';
                     select.appendChild(option);
                 });
 
-                // 2. 일정 입력 칸 (Input)
+                attRow.appendChild(attLabel);
+                attRow.appendChild(select);
+
+                // 2. 아래쪽: 일정 텍스트 입력 칸
                 const input = document.createElement('input');
                 input.type = 'text';
                 input.className = 'schedule-input';
-                input.placeholder = "일정";
+                input.placeholder = "일정 입력";
                 input.value = cellData.content;
                 
-                // 공통 저장 함수: 콤보박스나 텍스트를 건드릴 때 모두 실행
                 const saveCellData = async () => {
                     const contentVal = input.value.trim();
                     const attendanceVal = select.value;
@@ -207,7 +213,6 @@
                     scheduleData[dataKey] = { content: contentVal, attendance: attendanceVal };
                     setStatus('저장 중...', '#e67e22');
                     
-                    // 둘 다 빈칸이면 DB에서 삭제, 하나라도 값이 있으면 업데이트(Upsert)
                     if(contentVal === '' && attendanceVal === '') {
                         await supabaseClient.from('schedules').delete().eq('data_key', dataKey);
                     } else {
@@ -220,12 +225,13 @@
                     setStatus('저장 완료!');
                 };
 
-                // 값 변경 감지
                 select.onchange = saveCellData;
                 input.onchange = saveCellData;
 
-                cellDiv.appendChild(select);
+                // 순서대로 조립 (위: 출근여부, 아래: 입력칸)
+                cellDiv.appendChild(attRow);
                 cellDiv.appendChild(input);
+                
                 td.appendChild(cellDiv);
                 tr.appendChild(td);
             });
