@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Malgun Gothic', sans-serif; background-color: #f4f7f6; margin: 0; padding: 10px; color: #333; }
-        .container { max-width: 1300px; margin: 0 auto; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .container { max-width: 1400px; margin: 0 auto; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         h2 { text-align: center; color: #2c3e50; margin-bottom: 5px; font-size: 22px; }
         .status { text-align: center; color: #27ae60; font-size: 13px; font-weight: bold; margin-bottom: 15px; height: 18px; }
         .header-controls { display: flex; flex-direction: column; gap: 10px; align-items: center; margin-bottom: 15px; }
@@ -18,18 +18,27 @@
         .btn-add { background-color: #27ae60; width: 100%; max-width: 300px; }
         .btn-add:active { background-color: #219653; }
         .week-title { font-size: 18px; font-weight: bold; min-width: 150px; text-align: center; }
+        
         .table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid #ddd; border-radius: 6px; }
-        table.schedule-table { width: 100%; border-collapse: collapse; min-width: 900px; }
+        table.schedule-table { width: 100%; border-collapse: collapse; min-width: 1100px; }
         table.schedule-table th, table.schedule-table td { border: 1px solid #ddd; padding: 8px; text-align: center; vertical-align: middle; }
         table.schedule-table th { background-color: #f8f9fa; font-weight: bold; font-size: 14px; }
         table.schedule-table th:first-child, table.schedule-table td:first-child { position: sticky; left: 0; z-index: 2; background-color: #f8f9fa; border-right: 2px solid #bbb; box-shadow: 2px 0 5px rgba(0,0,0,0.05); }
         table.schedule-table td:first-child { background-color: #fff; }
         .sun { color: #e74c3c; } .sat { color: #3498db; }
+        
         .worker-info { display: flex; flex-direction: column; gap: 6px; width: 120px; }
-        .worker-info input, .schedule-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; text-align: center; font-size: 16px; width: 100%; box-sizing: border-box; background-color: #fdfdfd; }
-        .schedule-input { min-width: 100px; }
-        .worker-info input:focus, .schedule-input:focus { border: 1px solid #3498db; background-color: #fff; outline: none; }
+        .worker-info input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; text-align: center; font-size: 16px; width: 100%; box-sizing: border-box; background-color: #fdfdfd; }
+        .worker-info input:focus { border: 1px solid #3498db; background-color: #fff; outline: none; }
         .delete-btn { background: #e74c3c; color: white; border: none; border-radius: 4px; padding: 6px 5px; cursor: pointer; font-size: 13px; font-weight: bold; }
+        
+        /* 일정 입력 칸 디자인 (콤보박스 + 텍스트 입력) */
+        .cell-container { display: flex; gap: 4px; align-items: center; justify-content: center; }
+        .attendance-select { padding: 7px 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 15px; background-color: #f8f9fa; cursor: pointer; font-weight: bold; }
+        .attendance-select:focus { border-color: #3498db; outline: none; }
+        .schedule-input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; min-width: 80px; box-sizing: border-box; background-color: #fdfdfd; }
+        .schedule-input:focus { border: 1px solid #3498db; background-color: #fff; outline: none; }
+        
         @media (min-width: 768px) { .header-controls { flex-direction: row; } .btn-add { width: auto; } .worker-info { width: 150px; } }
     </style>
 </head>
@@ -60,7 +69,7 @@
 
 <script>
     const SUPABASE_URL = 'https://fjlkxesxyitlnkkdapnv.supabase.co';
-    
+        
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqbGt4ZXN4eWl0bG5ra2RhcG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NjA1MjcsImV4cCI6MjA5NzUzNjUyN30.3JbfUBjFx9UYY-qL8-3-A61nXt3xa2P9kINmnzDTmNo';
 
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -82,14 +91,17 @@
     async function loadData() {
         setStatus('데이터 불러오는 중...', '#e67e22');
         
-        // supabase -> supabaseClient 로 모두 변경
         const { data: wData, error: wErr } = await supabaseClient.from('workers').select('*').order('id', { ascending: true });
         if (wData) workers = wData;
 
         const { data: sData, error: sErr } = await supabaseClient.from('schedules').select('*');
         if (sData) {
             sData.forEach(item => {
-                scheduleData[item.data_key] = item.content;
+                // 기존 문자열 저장 방식에서 객체({내용, 출근여부}) 저장 방식으로 변경
+                scheduleData[item.data_key] = {
+                    content: item.content || '',
+                    attendance: item.attendance || ''
+                };
             });
         }
         
@@ -155,26 +167,66 @@
                 const dateStr = formatDate(date);
                 const dataKey = `${worker.id}_${dateStr}`;
                 
+                // 해당 날짜의 데이터 객체 가져오기 (없으면 빈 값)
+                const cellData = scheduleData[dataKey] || { content: '', attendance: '' };
+                
+                const cellDiv = document.createElement('div');
+                cellDiv.className = 'cell-container';
+
+                // 1. 출근 여부 콤보박스 (Select)
+                const select = document.createElement('select');
+                select.className = 'attendance-select';
+                const options = [
+                    { value: '', text: '-' },
+                    { value: 'O', text: 'O' },
+                    { value: 'X', text: 'X' }
+                ];
+                options.forEach(opt => {
+                    const option = document.createElement('option');
+                    option.value = opt.value;
+                    option.text = opt.text;
+                    if (cellData.attendance === opt.value) option.selected = true;
+                    // 색상 포인트 부여
+                    if (opt.value === 'O') option.style.color = 'blue';
+                    if (opt.value === 'X') option.style.color = 'red';
+                    select.appendChild(option);
+                });
+
+                // 2. 일정 입력 칸 (Input)
                 const input = document.createElement('input');
                 input.type = 'text';
                 input.className = 'schedule-input';
-                input.placeholder = "-";
-                input.value = scheduleData[dataKey] || '';
+                input.placeholder = "일정";
+                input.value = cellData.content;
                 
-                input.onchange = async function() {
-                    const val = this.value.trim();
-                    scheduleData[dataKey] = val;
+                // 공통 저장 함수: 콤보박스나 텍스트를 건드릴 때 모두 실행
+                const saveCellData = async () => {
+                    const contentVal = input.value.trim();
+                    const attendanceVal = select.value;
+                    
+                    scheduleData[dataKey] = { content: contentVal, attendance: attendanceVal };
                     setStatus('저장 중...', '#e67e22');
                     
-                    if(val === '') {
+                    // 둘 다 빈칸이면 DB에서 삭제, 하나라도 값이 있으면 업데이트(Upsert)
+                    if(contentVal === '' && attendanceVal === '') {
                         await supabaseClient.from('schedules').delete().eq('data_key', dataKey);
                     } else {
-                        await supabaseClient.from('schedules').upsert({ data_key: dataKey, content: val });
+                        await supabaseClient.from('schedules').upsert({ 
+                            data_key: dataKey, 
+                            content: contentVal,
+                            attendance: attendanceVal
+                        });
                     }
                     setStatus('저장 완료!');
                 };
 
-                td.appendChild(input);
+                // 값 변경 감지
+                select.onchange = saveCellData;
+                input.onchange = saveCellData;
+
+                cellDiv.appendChild(select);
+                cellDiv.appendChild(input);
+                td.appendChild(cellDiv);
                 tr.appendChild(td);
             });
 
