@@ -11,29 +11,24 @@
         h2 { text-align: center; color: #2c3e50; margin-bottom: 5px; font-size: 22px; }
         .status { text-align: center; color: #27ae60; font-size: 13px; font-weight: bold; margin-bottom: 15px; height: 18px; }
         
-        /* 💡 공지사항 디자인 변경 (이름은 파란색) */
         .notice-box { background-color: #fff3cd; color: #856404; padding: 12px; border-radius: 6px; margin-bottom: 15px; text-align: center; border: 1px solid #ffeeba; display: none; word-break: keep-all; font-size: 15px; }
         .notice-name { color: #0056b3; font-weight: bold; font-size: 16px; }
         
         .header-controls { display: flex; flex-direction: column; gap: 10px; align-items: center; margin-bottom: 15px; }
         .week-nav { display: flex; align-items: center; justify-content: center; width: 100%; gap: 10px; }
-        .week-nav button, .btn-add { padding: 10px 15px; cursor: pointer; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; color: white; white-space: nowrap; transition: 0.2s; }
         
-        .week-nav button { background: #3498db; }
-        .week-nav button:active { background: #2980b9; }
-        #prev-btn:disabled { background-color: #bdc3c7; cursor: not-allowed; opacity: 0.7; }
+        /* 💡 추가된 버튼 디자인 (기본적으로 숨김 처리) */
+        .week-nav button { display: none; } 
         
-        .btn-add { background-color: #27ae60; width: 100%; max-width: 300px; }
+        .btn-add { background-color: #27ae60; width: 100%; max-width: 300px; padding: 10px 15px; cursor: pointer; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; color: white; white-space: nowrap; transition: 0.2s; }
         .btn-add:active { background-color: #219653; }
         .week-title { font-size: 18px; font-weight: bold; min-width: 150px; text-align: center; }
         
         .table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid #ddd; border-radius: 6px; }
         table.schedule-table { width: 100%; border-collapse: collapse; min-width: 300px; } 
-        /* 💡 box-sizing 추가로 크기 계산 안정화 */
         table.schedule-table th, table.schedule-table td { border: 1px solid #ddd; padding: 8px; text-align: center; vertical-align: middle; box-sizing: border-box; }
         table.schedule-table th { background-color: #f8f9fa; font-weight: bold; font-size: 14px; }
         
-        /* 💡 좌측 2개 열(No. 및 정보) 동시 틀고정(Sticky) 설정 */
         .col-no { position: sticky; left: 0; z-index: 3; background-color: #f8f9fa; width: 45px; min-width: 45px; max-width: 45px; border-right: 1px solid #ddd; color: #555; font-weight: bold; }
         .col-info { position: sticky; left: 45px; z-index: 2; background-color: #f8f9fa; border-right: 2px solid #bbb; box-shadow: 2px 0 5px rgba(0,0,0,0.05); min-width: 120px; }
         tbody .col-no, tbody .col-info { background-color: #fff; }
@@ -65,9 +60,9 @@
     
     <div class="header-controls">
         <div class="week-nav">
-            <button id="prev-btn" onclick="changeWeek(-1)" disabled>◀ 이전</button>
+            <button id="prev-btn" onclick="changeWeek(-1)" disabled style="display: none;">◀ 이전</button>
             <span class="week-title" id="week-display"></span>
-            <button onclick="changeWeek(1)">다음 ▶</button>
+            <button id="next-btn" onclick="changeWeek(1)" disabled style="display: none;">다음 ▶</button>
         </div>
         <button class="btn-add" onclick="addWorker()">+ 장비/기사 추가</button>
     </div>
@@ -84,7 +79,8 @@
 
 <script>
     const SUPABASE_URL = 'https://fjlkxesxyitlnkkdapnv.supabase.co';
-        
+    
+    // 🔴 중요: 여기에 본인의 실제 API 키(anon public)를 다시 입력해 주세요.
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqbGt4ZXN4eWl0bG5ra2RhcG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NjA1MjcsImV4cCI6MjA5NzUzNjUyN30.3JbfUBjFx9UYY-qL8-3-A61nXt3xa2P9kINmnzDTmNo';
 
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -145,7 +141,6 @@
         document.getElementById('week-display').innerText = `${month}월 ${weekNum}주차`;
 
         const theadRow = document.getElementById('table-header');
-        // 💡 1열(No.), 2열(장비/기사) 헤더 생성
         theadRow.innerHTML = '<th class="col-no">No.</th><th class="col-info">장비 / 기사</th>';
         
         const today = new Date();
@@ -180,12 +175,12 @@
 
         workers.forEach((worker, index) => {
             const tr = document.createElement('tr');
-                        
+            
             const noTd = document.createElement('td');
             noTd.className = 'col-no';
             noTd.innerText = index + 1;
             tr.appendChild(noTd);
-            
+
             const infoTd = document.createElement('td');
             infoTd.className = 'col-info';
             infoTd.innerHTML = `
