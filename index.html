@@ -11,7 +11,9 @@
         h2 { text-align: center; color: #2c3e50; margin-bottom: 5px; font-size: 22px; }
         .status { text-align: center; color: #27ae60; font-size: 13px; font-weight: bold; margin-bottom: 15px; height: 18px; }
         
-        .notice-box { background-color: #ffeaa7; color: #d35400; padding: 12px; border-radius: 6px; margin-bottom: 15px; font-weight: bold; text-align: center; border: 1px solid #fdcb6e; display: none; word-break: keep-all; }
+        /* 💡 공지사항 디자인 변경 (이름은 파란색) */
+        .notice-box { background-color: #fff3cd; color: #856404; padding: 12px; border-radius: 6px; margin-bottom: 15px; text-align: center; border: 1px solid #ffeeba; display: none; word-break: keep-all; font-size: 15px; }
+        .notice-name { color: #0056b3; font-weight: bold; font-size: 16px; }
         
         .header-controls { display: flex; flex-direction: column; gap: 10px; align-items: center; margin-bottom: 15px; }
         .week-nav { display: flex; align-items: center; justify-content: center; width: 100%; gap: 10px; }
@@ -19,7 +21,6 @@
         
         .week-nav button { background: #3498db; }
         .week-nav button:active { background: #2980b9; }
-        /* 이전 버튼 비활성화 상태 스타일 */
         #prev-btn:disabled { background-color: #bdc3c7; cursor: not-allowed; opacity: 0.7; }
         
         .btn-add { background-color: #27ae60; width: 100%; max-width: 300px; }
@@ -28,16 +29,19 @@
         
         .table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid #ddd; border-radius: 6px; }
         table.schedule-table { width: 100%; border-collapse: collapse; min-width: 300px; } 
-        table.schedule-table th, table.schedule-table td { border: 1px solid #ddd; padding: 8px; text-align: center; vertical-align: middle; }
+        /* 💡 box-sizing 추가로 크기 계산 안정화 */
+        table.schedule-table th, table.schedule-table td { border: 1px solid #ddd; padding: 8px; text-align: center; vertical-align: middle; box-sizing: border-box; }
         table.schedule-table th { background-color: #f8f9fa; font-weight: bold; font-size: 14px; }
-        table.schedule-table th:first-child, table.schedule-table td:first-child { position: sticky; left: 0; z-index: 2; background-color: #f8f9fa; border-right: 2px solid #bbb; box-shadow: 2px 0 5px rgba(0,0,0,0.05); }
-        table.schedule-table td:first-child { background-color: #fff; }
-        .sun { color: #e74c3c; } .sat { color: #3498db; }
         
-        /* 오늘 날짜 배경색 강조 스타일 */
+        /* 💡 좌측 2개 열(No. 및 정보) 동시 틀고정(Sticky) 설정 */
+        .col-no { position: sticky; left: 0; z-index: 3; background-color: #f8f9fa; width: 45px; min-width: 45px; max-width: 45px; border-right: 1px solid #ddd; color: #555; font-weight: bold; }
+        .col-info { position: sticky; left: 45px; z-index: 2; background-color: #f8f9fa; border-right: 2px solid #bbb; box-shadow: 2px 0 5px rgba(0,0,0,0.05); min-width: 120px; }
+        tbody .col-no, tbody .col-info { background-color: #fff; }
+        
+        .sun { color: #e74c3c; } .sat { color: #3498db; }
         .today-col { background-color: #e3f2fd !important; }
         
-        .worker-info { display: flex; flex-direction: column; gap: 6px; width: 120px; }
+        .worker-info { display: flex; flex-direction: column; gap: 6px; width: 100%; }
         .worker-info input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; text-align: center; font-size: 16px; width: 100%; box-sizing: border-box; background-color: #fdfdfd; }
         .worker-info input:focus { border: 1px solid #3498db; background-color: #fff; outline: none; }
         
@@ -48,7 +52,7 @@
         .schedule-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; box-sizing: border-box; background-color: #fdfdfd; width: 100%; }
         .schedule-input:focus { border: 1px solid #3498db; background-color: #fff; outline: none; }
         
-        @media (min-width: 768px) { .header-controls { flex-direction: row; } .btn-add { width: auto; } .worker-info { width: 150px; } }
+        @media (min-width: 768px) { .header-controls { flex-direction: row; } .btn-add { width: auto; } }
     </style>
 </head>
 <body>
@@ -61,7 +65,7 @@
     
     <div class="header-controls">
         <div class="week-nav">
-            <button id="prev-btn" onclick="changeWeek(-1)">◀ 이전</button>
+            <button id="prev-btn" onclick="changeWeek(-1)" disabled>◀ 이전</button>
             <span class="week-title" id="week-display"></span>
             <button onclick="changeWeek(1)">다음 ▶</button>
         </div>
@@ -80,7 +84,7 @@
 
 <script>
     const SUPABASE_URL = 'https://fjlkxesxyitlnkkdapnv.supabase.co';
-    
+        
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqbGt4ZXN4eWl0bG5ra2RhcG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NjA1MjcsImV4cCI6MjA5NzUzNjUyN30.3JbfUBjFx9UYY-qL8-3-A61nXt3xa2P9kINmnzDTmNo';
 
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -140,20 +144,9 @@
         
         document.getElementById('week-display').innerText = `${month}월 ${weekNum}주차`;
 
-        // 현재 실제 주차의 일요일과 비교하여 '이전' 버튼 비활성화 처리
-        const realToday = new Date();
-        realToday.setHours(0, 0, 0, 0);
-        const realSunday = getSunday(realToday);
-        
-        const prevBtn = document.getElementById('prev-btn');
-        if (sunday.getTime() <= realSunday.getTime()) {
-            prevBtn.disabled = true; // 버튼 클릭 막기
-        } else {
-            prevBtn.disabled = false; // 활성화
-        }
-
         const theadRow = document.getElementById('table-header');
-        theadRow.innerHTML = '<th>장비 / 기사</th>';
+        // 💡 1열(No.), 2열(장비/기사) 헤더 생성
+        theadRow.innerHTML = '<th class="col-no">No.</th><th class="col-info">장비 / 기사</th>';
         
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -164,7 +157,6 @@
             d.setDate(sunday.getDate() + i);
             d.setHours(0, 0, 0, 0); 
             
-            // 과거 날짜 숨김
             if (d < today) continue;
 
             weekDates.push(d);
@@ -174,7 +166,6 @@
             if (d.getDay() === 0) th.classList.add('sun');
             if (d.getDay() === 6) th.classList.add('sat');
             
-            // 💡 [수정 3] 오늘 날짜인 경우 강조 클래스 추가
             if (d.getTime() === today.getTime()) {
                 th.classList.add('today-col');
             }
@@ -187,10 +178,16 @@
         
         let unassignedWorkers = new Set();
 
-        workers.forEach(worker => {
+        workers.forEach((worker, index) => {
             const tr = document.createElement('tr');
+                        
+            const noTd = document.createElement('td');
+            noTd.className = 'col-no';
+            noTd.innerText = index + 1;
+            tr.appendChild(noTd);
             
             const infoTd = document.createElement('td');
+            infoTd.className = 'col-info';
             infoTd.innerHTML = `
                 <div class="worker-info">
                     <input type="text" placeholder="장비 (02)" value="${worker.machine || ''}" onchange="updateWorker(${worker.id}, 'machine', this.value)">
@@ -201,7 +198,6 @@
 
             weekDates.forEach(date => {
                 const td = document.createElement('td');
-                // 💡 [수정 3] 오늘 날짜인 경우 열 전체에 배경색 적용
                 if (date.getTime() === today.getTime()) {
                     td.classList.add('today-col');
                 }
@@ -211,7 +207,6 @@
                 
                 const cellData = scheduleData[dataKey] || { content: '', attendance: '' };
                 
-                //  미배차인 경우 이름만 추출 (이름이 비어있으면 임시로 장비명 표시)
                 if (cellData.attendance !== 'O' && cellData.attendance !== 'X') {
                     const displayName = (worker.name || worker.machine || '').trim();
                     if(displayName) unassignedWorkers.add(displayName);
@@ -289,7 +284,7 @@
         const noticeBox = document.getElementById('unassigned-notice');
         if (weekDates.length > 0 && unassignedWorkers.size > 0) {
             noticeBox.style.display = 'block';
-            noticeBox.innerHTML = `📢 <b>이번 주 배차 미정:</b> ${Array.from(unassignedWorkers).join(', ')}`;
+            noticeBox.innerHTML = `📢 <b>이번 주 배차 미정:</b> <span class="notice-name">${Array.from(unassignedWorkers).join(', ')}</span>`;
         } else {
             noticeBox.style.display = 'none';
         }
@@ -316,7 +311,6 @@
             await supabaseClient.from('workers').update({ [field]: value }).eq('id', id);
             setStatus('저장 완료!');
             
-            // 이름이 업데이트 되었을 수 있으므로 표 리렌더링 (공지사항 반영)
             renderTable();
         }
     }
