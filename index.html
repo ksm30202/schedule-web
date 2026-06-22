@@ -17,7 +17,6 @@
         .header-controls { display: flex; flex-direction: column; gap: 10px; align-items: center; margin-bottom: 15px; }
         .week-nav { display: flex; align-items: center; justify-content: center; width: 100%; gap: 10px; }
         
-        /* 이전, 다음 버튼 완전 숨김 처리 */
         .week-nav button { display: none; } 
         
         .btn-add { background-color: #27ae60; width: 100%; max-width: 300px; padding: 10px 15px; cursor: pointer; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; color: white; white-space: nowrap; transition: 0.2s; }
@@ -34,7 +33,12 @@
         tbody .col-no, tbody .col-info { background-color: #fff; }
         
         .sun { color: #e74c3c; } .sat { color: #3498db; }
-        .today-col { background-color: #e3f2fd !important; }
+        
+        /* 💡 오늘 날짜 강조 스타일 CSS 우선순위 조정 (!important 제거) */
+        table.schedule-table th.today-col, 
+        table.schedule-table td.today-col { 
+            background-color: #e3f2fd; 
+        }
         
         .worker-info { display: flex; flex-direction: column; gap: 6px; width: 100%; }
         .worker-info input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; text-align: center; font-size: 16px; width: 100%; box-sizing: border-box; background-color: #fdfdfd; }
@@ -81,7 +85,7 @@
 
 <script>
     const SUPABASE_URL = 'https://fjlkxesxyitlnkkdapnv.supabase.co';
-    
+        
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqbGt4ZXN4eWl0bG5ra2RhcG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NjA1MjcsImV4cCI6MjA5NzUzNjUyN30.3JbfUBjFx9UYY-qL8-3-A61nXt3xa2P9kINmnzDTmNo';
 
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -204,7 +208,6 @@
                 
                 const attLabel = document.createElement('span');
                 attLabel.innerText = '배차여부:';
-                // 라벨 기본 색상
                 attLabel.style.color = '#555';
 
                 const select = document.createElement('select');
@@ -226,21 +229,17 @@
 
                 const updateCellColor = () => {
                     if (select.value === 'X') {
-                        // 일없어요: 칸 배경을 흑색으로, 라벨 글씨를 흰색으로
                         td.style.backgroundColor = '#333';
                         attLabel.style.color = '#fff';
                     } else if (select.value === 'O') {
-                        // 일해요: 칸 배경을 하얀색으로, 라벨 글씨를 기본색으로
                         td.style.backgroundColor = '#fff';
                         attLabel.style.color = '#555';
                     } else {
-                        // 선택 안됨: 배경색 초기화 (오늘 날짜인 경우 CSS에 의해 오늘색으로 돌아감)
                         td.style.backgroundColor = '';
                         attLabel.style.color = '#555';
                     }
                 };
                 
-                // 처음 그릴 때 저장된 값에 따라 셀 배경색 적용
                 updateCellColor();
 
                 attRow.appendChild(attLabel);
@@ -256,7 +255,7 @@
                     const contentVal = input.value.trim();
                     const attendanceVal = select.value;
                     
-                    updateCellColor(); // 선택이 변경되면 즉시 셀 색상 변경
+                    updateCellColor();
                     
                     scheduleData[dataKey] = { content: contentVal, attendance: attendanceVal };
                     setStatus('저장 중...', '#e67e22');
