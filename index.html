@@ -225,12 +225,12 @@
                 });
 
                 const updateCellColor = () => {
-                    if (select.value === 'O') {
-                        // 일해요: 칸 배경을 흑색으로, 라벨 글씨를 흰색으로
+                    if (select.value === 'X') {
+                        // 일없어요: 칸 배경을 흑색으로, 라벨 글씨를 흰색으로
                         td.style.backgroundColor = '#333';
                         attLabel.style.color = '#fff';
-                    } else if (select.value === 'X') {
-                        // 일없어요: 칸 배경을 하얀색으로, 라벨 글씨를 기본색으로
+                    } else if (select.value === 'O') {
+                        // 일해요: 칸 배경을 하얀색으로, 라벨 글씨를 기본색으로
                         td.style.backgroundColor = '#fff';
                         attLabel.style.color = '#555';
                     } else {
