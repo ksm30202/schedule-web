@@ -10,6 +10,10 @@
         .container { max-width: 1400px; margin: 0 auto; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         h2 { text-align: center; color: #2c3e50; margin-bottom: 5px; font-size: 22px; }
         .status { text-align: center; color: #27ae60; font-size: 13px; font-weight: bold; margin-bottom: 15px; height: 18px; }
+        
+        /* 미배차 공지사항 스타일 */
+        .notice-box { background-color: #ffeaa7; color: #d35400; padding: 12px; border-radius: 6px; margin-bottom: 15px; font-weight: bold; text-align: center; border: 1px solid #fdcb6e; display: none; word-break: keep-all; }
+        
         .header-controls { display: flex; flex-direction: column; gap: 10px; align-items: center; margin-bottom: 15px; }
         .week-nav { display: flex; align-items: center; justify-content: center; width: 100%; gap: 10px; }
         .week-nav button, .btn-add { padding: 10px 15px; cursor: pointer; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; color: white; white-space: nowrap; }
@@ -20,7 +24,7 @@
         .week-title { font-size: 18px; font-weight: bold; min-width: 150px; text-align: center; }
         
         .table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid #ddd; border-radius: 6px; }
-        table.schedule-table { width: 100%; border-collapse: collapse; min-width: 1100px; }
+        table.schedule-table { width: 100%; border-collapse: collapse; min-width: 300px; } /* 날짜가 줄어들 수 있으므로 min-width 조정 */
         table.schedule-table th, table.schedule-table td { border: 1px solid #ddd; padding: 8px; text-align: center; vertical-align: middle; }
         table.schedule-table th { background-color: #f8f9fa; font-weight: bold; font-size: 14px; }
         table.schedule-table th:first-child, table.schedule-table td:first-child { position: sticky; left: 0; z-index: 2; background-color: #f8f9fa; border-right: 2px solid #bbb; box-shadow: 2px 0 5px rgba(0,0,0,0.05); }
@@ -30,10 +34,8 @@
         .worker-info { display: flex; flex-direction: column; gap: 6px; width: 120px; }
         .worker-info input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; text-align: center; font-size: 16px; width: 100%; box-sizing: border-box; background-color: #fdfdfd; }
         .worker-info input:focus { border: 1px solid #3498db; background-color: #fff; outline: none; }
-        .delete-btn { background: #e74c3c; color: white; border: none; border-radius: 4px; padding: 6px 5px; cursor: pointer; font-size: 13px; font-weight: bold; }
         
-        /* 변경된 일정 칸 디자인 (위아래 배치) */
-        .cell-container { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+        .cell-container { display: flex; flex-direction: column; gap: 6px; align-items: stretch; min-width: 120px; }
         .attendance-row { display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 13px; color: #555; font-weight: bold; }
         .attendance-select { padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; background-color: #f8f9fa; cursor: pointer; font-weight: bold; }
         .attendance-select:focus { border-color: #3498db; outline: none; }
@@ -48,6 +50,8 @@
 <div class="container">
     <h2>장비 운행 스케줄</h2>
     <div class="status" id="db-status">서버 연결 중...</div>
+    
+    <div id="unassigned-notice" class="notice-box"></div>
     
     <div class="header-controls">
         <div class="week-nav">
@@ -133,31 +137,43 @@
         const theadRow = document.getElementById('table-header');
         theadRow.innerHTML = '<th>장비 / 기사</th>';
         
+        // 오늘 날짜 구하기 (시간은 00:00:00으로 초기화하여 정확한 날짜만 비교)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
         let weekDates = [];
         for (let i = 0; i < 7; i++) {
             const d = new Date(sunday);
             d.setDate(sunday.getDate() + i);
+            d.setHours(0, 0, 0, 0); // 비교를 위해 시간 초기화
+            
+            // 💡 [수정 2] 과거 날짜인 경우 건너뛰기 (노출 안 함)
+            if (d < today) continue;
+
             weekDates.push(d);
             
             const th = document.createElement('th');
-            th.innerHTML = `${d.getMonth() + 1}/${d.getDate()}<br>(${dayNames[i]})`;
-            if (i === 0) th.classList.add('sun');
-            if (i === 6) th.classList.add('sat');
+            th.innerHTML = `${d.getMonth() + 1}/${d.getDate()}<br>(${dayNames[d.getDay()]})`;
+            if (d.getDay() === 0) th.classList.add('sun');
+            if (d.getDay() === 6) th.classList.add('sat');
             theadRow.appendChild(th);
         }
 
         const tbody = document.getElementById('table-body');
         tbody.innerHTML = '';
+        
+        // 💡 [수정 4] 미배차 인원 수집용 변수
+        let unassignedWorkers = new Set();
 
         workers.forEach(worker => {
             const tr = document.createElement('tr');
             
             const infoTd = document.createElement('td');
+            // 💡 [수정 1] 삭제 버튼 노출 제거
             infoTd.innerHTML = `
                 <div class="worker-info">
                     <input type="text" placeholder="장비 (02)" value="${worker.machine || ''}" onchange="updateWorker(${worker.id}, 'machine', this.value)">
                     <input type="text" placeholder="기사명" value="${worker.name || ''}" onchange="updateWorker(${worker.id}, 'name', this.value)">
-                    <button class="delete-btn" onclick="removeWorker(${worker.id})">삭제</button>
                 </div>
             `;
             tr.appendChild(infoTd);
@@ -169,15 +185,21 @@
                 
                 const cellData = scheduleData[dataKey] || { content: '', attendance: '' };
                 
+                // 💡 [수정 4] 화면에 보이는 날짜 중에 배차여부가 O나 X가 아니라면 목록에 추가
+                if (cellData.attendance !== 'O' && cellData.attendance !== 'X') {
+                    const displayName = `${worker.machine || ''} ${worker.name || ''}`.trim();
+                    if(displayName) unassignedWorkers.add(displayName);
+                }
+
                 const cellDiv = document.createElement('div');
                 cellDiv.className = 'cell-container';
 
-                // 1. 위쪽: 출근여부 라벨 + 콤보박스 묶음
                 const attRow = document.createElement('div');
                 attRow.className = 'attendance-row';
                 
+                // 💡 [수정 3] 라벨을 출근여부에서 배차여부로 변경
                 const attLabel = document.createElement('span');
-                attLabel.innerText = '출근여부:';
+                attLabel.innerText = '배차여부:';
 
                 const select = document.createElement('select');
                 select.className = 'attendance-select';
@@ -199,7 +221,6 @@
                 attRow.appendChild(attLabel);
                 attRow.appendChild(select);
 
-                // 2. 아래쪽: 일정 텍스트 입력 칸
                 const input = document.createElement('input');
                 input.type = 'text';
                 input.className = 'schedule-input';
@@ -223,12 +244,14 @@
                         });
                     }
                     setStatus('저장 완료!');
+                    
+                    // 값 변경 후 전체 표 리렌더링 (공지사항 즉각 반영을 위해)
+                    renderTable();
                 };
 
                 select.onchange = saveCellData;
                 input.onchange = saveCellData;
 
-                // 순서대로 조립 (위: 출근여부, 아래: 입력칸)
                 cellDiv.appendChild(attRow);
                 cellDiv.appendChild(input);
                 
@@ -238,6 +261,16 @@
 
             tbody.appendChild(tr);
         });
+
+        // 💡 [수정 4] 미배차 공지사항 영역 업데이트
+        const noticeBox = document.getElementById('unassigned-notice');
+        // 화면에 보여줄 날짜(weekDates)가 존재하고, 미배차 인원이 1명 이상일 때만 표시
+        if (weekDates.length > 0 && unassignedWorkers.size > 0) {
+            noticeBox.style.display = 'block';
+            noticeBox.innerHTML = `📢 <b>이번 주 배차 미정:</b> ${Array.from(unassignedWorkers).join(', ')}`;
+        } else {
+            noticeBox.style.display = 'none';
+        }
     }
 
     function changeWeek(delta) {
@@ -263,6 +296,7 @@
         }
     }
 
+    // (참고용 유지) 삭제 기능 자체는 유지하되 화면의 버튼만 숨겼습니다.
     async function removeWorker(id) {
         if(confirm('이 장비를 삭제하시겠습니까?')) {
             workers = workers.filter(w => w.id !== id);
