@@ -17,7 +17,7 @@
         .header-controls { display: flex; flex-direction: column; gap: 10px; align-items: center; margin-bottom: 15px; }
         .week-nav { display: flex; align-items: center; justify-content: center; width: 100%; gap: 10px; }
         
-        /* 💡 추가된 버튼 디자인 (기본적으로 숨김 처리) */
+        /* 이전, 다음 버튼 완전 숨김 처리 */
         .week-nav button { display: none; } 
         
         .btn-add { background-color: #27ae60; width: 100%; max-width: 300px; padding: 10px 15px; cursor: pointer; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; color: white; white-space: nowrap; transition: 0.2s; }
@@ -26,7 +26,7 @@
         
         .table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid #ddd; border-radius: 6px; }
         table.schedule-table { width: 100%; border-collapse: collapse; min-width: 300px; } 
-        table.schedule-table th, table.schedule-table td { border: 1px solid #ddd; padding: 8px; text-align: center; vertical-align: middle; box-sizing: border-box; }
+        table.schedule-table th, table.schedule-table td { border: 1px solid #ddd; padding: 8px; text-align: center; vertical-align: middle; box-sizing: border-box; transition: background-color 0.2s; }
         table.schedule-table th { background-color: #f8f9fa; font-weight: bold; font-size: 14px; }
         
         .col-no { position: sticky; left: 0; z-index: 3; background-color: #f8f9fa; width: 45px; min-width: 45px; max-width: 45px; border-right: 1px solid #ddd; color: #555; font-weight: bold; }
@@ -41,9 +41,11 @@
         .worker-info input:focus { border: 1px solid #3498db; background-color: #fff; outline: none; }
         
         .cell-container { display: flex; flex-direction: column; gap: 6px; align-items: stretch; min-width: 120px; }
-        .attendance-row { display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 13px; color: #555; font-weight: bold; }
-        .attendance-select { padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; background-color: #f8f9fa; cursor: pointer; font-weight: bold; }
+        .attendance-row { display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 13px; font-weight: bold; }
+        
+        .attendance-select { padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; background-color: #f8f9fa; cursor: pointer; font-weight: bold; text-align: center; color: #333; }
         .attendance-select:focus { border-color: #3498db; outline: none; }
+
         .schedule-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; box-sizing: border-box; background-color: #fdfdfd; width: 100%; }
         .schedule-input:focus { border: 1px solid #3498db; background-color: #fff; outline: none; }
         
@@ -60,9 +62,9 @@
     
     <div class="header-controls">
         <div class="week-nav">
-            <button id="prev-btn" onclick="changeWeek(-1)" disabled style="display: none;">◀ 이전</button>
+            <button id="prev-btn" disabled style="display: none;">◀ 이전</button>
             <span class="week-title" id="week-display"></span>
-            <button id="next-btn" onclick="changeWeek(1)" disabled style="display: none;">다음 ▶</button>
+            <button id="next-btn" disabled style="display: none;">다음 ▶</button>
         </div>
         <button class="btn-add" onclick="addWorker()">+ 장비/기사 추가</button>
     </div>
@@ -80,14 +82,12 @@
 <script>
     const SUPABASE_URL = 'https://fjlkxesxyitlnkkdapnv.supabase.co';
     
-    // 🔴 중요: 여기에 본인의 실제 API 키(anon public)를 다시 입력해 주세요.
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqbGt4ZXN4eWl0bG5ra2RhcG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NjA1MjcsImV4cCI6MjA5NzUzNjUyN30.3JbfUBjFx9UYY-qL8-3-A61nXt3xa2P9kINmnzDTmNo';
 
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         auth: { persistSession: false }
     });
 
-    let currentDate = new Date();
     const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
     let workers = [];
     let scheduleData = {};
@@ -119,12 +119,6 @@
         setStatus('서버 연동 완료!');
     }
 
-    function getSunday(date) {
-        const d = new Date(date);
-        const day = d.getDay();
-        return new Date(d.setDate(d.getDate() - day));
-    }
-
     function formatDate(date) {
         const y = date.getFullYear();
         const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -133,27 +127,18 @@
     }
 
     function renderTable() {
-        const sunday = getSunday(currentDate);
-        const month = sunday.getMonth() + 1;
-        const firstDayOfMonth = new Date(sunday.getFullYear(), sunday.getMonth(), 1);
-        const weekNum = Math.ceil((sunday.getDate() + firstDayOfMonth.getDay()) / 7);
-        
-        document.getElementById('week-display').innerText = `${month}월 ${weekNum}주차`;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        document.getElementById('week-display').innerText = `${today.getMonth() + 1}월 배차 일정`;
 
         const theadRow = document.getElementById('table-header');
         theadRow.innerHTML = '<th class="col-no">No.</th><th class="col-info">장비 / 기사</th>';
         
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
         let weekDates = [];
         for (let i = 0; i < 7; i++) {
-            const d = new Date(sunday);
-            d.setDate(sunday.getDate() + i);
-            d.setHours(0, 0, 0, 0); 
-            
-            if (d < today) continue;
-
+            const d = new Date(today);
+            d.setDate(today.getDate() + i);
             weekDates.push(d);
             
             const th = document.createElement('th');
@@ -161,7 +146,7 @@
             if (d.getDay() === 0) th.classList.add('sun');
             if (d.getDay() === 6) th.classList.add('sat');
             
-            if (d.getTime() === today.getTime()) {
+            if (i === 0) {
                 th.classList.add('today-col');
             }
             
@@ -171,7 +156,9 @@
         const tbody = document.getElementById('table-body');
         tbody.innerHTML = '';
         
-        let unassignedWorkers = new Set();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
+        let unassignedWorkersTomorrow = new Set();
 
         workers.forEach((worker, index) => {
             const tr = document.createElement('tr');
@@ -191,9 +178,9 @@
             `;
             tr.appendChild(infoTd);
 
-            weekDates.forEach(date => {
+            weekDates.forEach((date, i) => {
                 const td = document.createElement('td');
-                if (date.getTime() === today.getTime()) {
+                if (i === 0) {
                     td.classList.add('today-col');
                 }
                 
@@ -202,9 +189,11 @@
                 
                 const cellData = scheduleData[dataKey] || { content: '', attendance: '' };
                 
-                if (cellData.attendance !== 'O' && cellData.attendance !== 'X') {
-                    const displayName = (worker.name || worker.machine || '').trim();
-                    if(displayName) unassignedWorkers.add(displayName);
+                if (date.getTime() === tomorrow.getTime()) {
+                    if (cellData.attendance !== 'O' && cellData.attendance !== 'X') {
+                        const displayName = (worker.name || worker.machine || '').trim();
+                        if(displayName) unassignedWorkersTomorrow.add(displayName);
+                    }
                 }
 
                 const cellDiv = document.createElement('div');
@@ -215,23 +204,44 @@
                 
                 const attLabel = document.createElement('span');
                 attLabel.innerText = '배차여부:';
+                // 라벨 기본 색상
+                attLabel.style.color = '#555';
 
                 const select = document.createElement('select');
                 select.className = 'attendance-select';
+                
                 const options = [
                     { value: '', text: '-' },
-                    { value: 'O', text: 'O' },
-                    { value: 'X', text: 'X' }
+                    { value: 'O', text: '일해요' },
+                    { value: 'X', text: '일없어요' }
                 ];
+                
                 options.forEach(opt => {
                     const option = document.createElement('option');
                     option.value = opt.value;
                     option.text = opt.text;
                     if (cellData.attendance === opt.value) option.selected = true;
-                    if (opt.value === 'O') option.style.color = 'blue';
-                    if (opt.value === 'X') option.style.color = 'red';
                     select.appendChild(option);
                 });
+
+                const updateCellColor = () => {
+                    if (select.value === 'O') {
+                        // 일해요: 칸 배경을 흑색으로, 라벨 글씨를 흰색으로
+                        td.style.backgroundColor = '#333';
+                        attLabel.style.color = '#fff';
+                    } else if (select.value === 'X') {
+                        // 일없어요: 칸 배경을 하얀색으로, 라벨 글씨를 기본색으로
+                        td.style.backgroundColor = '#fff';
+                        attLabel.style.color = '#555';
+                    } else {
+                        // 선택 안됨: 배경색 초기화 (오늘 날짜인 경우 CSS에 의해 오늘색으로 돌아감)
+                        td.style.backgroundColor = '';
+                        attLabel.style.color = '#555';
+                    }
+                };
+                
+                // 처음 그릴 때 저장된 값에 따라 셀 배경색 적용
+                updateCellColor();
 
                 attRow.appendChild(attLabel);
                 attRow.appendChild(select);
@@ -245,6 +255,8 @@
                 const saveCellData = async () => {
                     const contentVal = input.value.trim();
                     const attendanceVal = select.value;
+                    
+                    updateCellColor(); // 선택이 변경되면 즉시 셀 색상 변경
                     
                     scheduleData[dataKey] = { content: contentVal, attendance: attendanceVal };
                     setStatus('저장 중...', '#e67e22');
@@ -277,17 +289,12 @@
         });
 
         const noticeBox = document.getElementById('unassigned-notice');
-        if (weekDates.length > 0 && unassignedWorkers.size > 0) {
+        if (unassignedWorkersTomorrow.size > 0) {
             noticeBox.style.display = 'block';
-            noticeBox.innerHTML = `📢 <b>이번 주 배차 미정:</b> <span class="notice-name">${Array.from(unassignedWorkers).join(', ')}</span>`;
+            noticeBox.innerHTML = `📢 <b>내일(${tomorrow.getMonth() + 1}/${tomorrow.getDate()}) 배차 미지정:</b> <span class="notice-name">${Array.from(unassignedWorkersTomorrow).join(', ')}</span>`;
         } else {
             noticeBox.style.display = 'none';
         }
-    }
-
-    function changeWeek(delta) {
-        currentDate.setDate(currentDate.getDate() + (delta * 7));
-        renderTable();
     }
 
     async function addWorker() {
